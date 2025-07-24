@@ -368,6 +368,24 @@ InbvDisplayString(
     return FALSE;
 }
 
+
+BOOLEAN 
+NTAPI
+InbvDrawText(
+    _In_ PCHAR String
+) 
+{
+    InbvAcquireLock();
+    if (InbvBootDriverInstalled){
+        /* We clear the previous message */
+        VidSolidColorFill(10, 10, SCREEN_WIDTH - 1, 30, BV_COLOR_BLACK);
+        /* We display the string at the specific location */
+        VidDisplayStringXY((PUCHAR)String, 10, 10, TRUE);
+    }
+    InbvReleaseLock();
+    return TRUE;
+}
+
 BOOLEAN
 NTAPI
 InbvEnableDisplayString(
@@ -765,8 +783,8 @@ NtDisplayString(IN PUNICODE_STRING DisplayString)
     }
 
     /* Display the string */
-    InbvDisplayString(OemString.Buffer);
-
+    //InbvDisplayString(OemString.Buffer);
+    InbvDrawText(OemString.Buffer);
     /* Free the string buffer */
     ExFreePoolWithTag(OemString.Buffer, TAG_OSTR);
 
