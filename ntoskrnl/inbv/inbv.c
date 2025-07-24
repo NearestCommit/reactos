@@ -783,8 +783,13 @@ NtDisplayString(IN PUNICODE_STRING DisplayString)
     }
 
     /* Display the string */
+<<<<<<< HEAD
     InbvDisplayString(OemString.Buffer);
     
+=======
+    //InbvDisplayString(OemString.Buffer);
+    InbvDrawText(OemString.Buffer);
+>>>>>>> 4082e843b36 (InbvDrawText)
     /* Free the string buffer */
     ExFreePoolWithTag(OemString.Buffer, TAG_OSTR);
 

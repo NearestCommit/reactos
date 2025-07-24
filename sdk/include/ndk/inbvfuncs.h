@@ -80,6 +80,12 @@ InbvDisplayString(
 
 BOOLEAN
 NTAPI
+InbvDrawText(
+    _In_ PCHAR String
+);
+
+BOOLEAN
+NTAPI
 InbvEnableDisplayString(
     _In_ BOOLEAN Enable
 );
