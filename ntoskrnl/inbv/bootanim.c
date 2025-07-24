@@ -133,6 +133,7 @@ static RGBQUAD MainPalette[16];
 static VOID
 BootLogoFadeIn(VOID)
 {
+    InbvDrawText("Welcome to ReactOS!");
     UCHAR PaletteBitmapBuffer[sizeof(BITMAPINFOHEADER) + sizeof(MainPalette)];
     PBITMAPINFOHEADER PaletteBitmap = (PBITMAPINFOHEADER)PaletteBitmapBuffer;
     LPRGBQUAD Palette = (LPRGBQUAD)(PaletteBitmapBuffer + sizeof(BITMAPINFOHEADER));
@@ -190,7 +191,6 @@ BitBltPalette(
     IN ULONG X,
     IN ULONG Y)
 {
-    InbvDrawText("Hello");
     LPRGBQUAD Palette;
     RGBQUAD OrigPalette[RTL_NUMBER_OF(MainPalette)];
 
@@ -812,8 +812,8 @@ FinalizeBootLogo(VOID)
 >>>>>>> 4082e843b36 (InbvDrawText)
     /* Reset progress bar and lock */
 #ifdef INBV_ROTBAR_IMPLEMENTED
-    PltRotBarStatus = RBS_STOP_ANIMATE;
-    RotBarThreadActive = FALSE;
+    // PltRotBarStatus = RBS_STOP_ANIMATE;
+    // RotBarThreadActive = FALSE;
 #endif
     InbvReleaseLock();
 }
