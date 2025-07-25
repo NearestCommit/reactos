@@ -133,7 +133,6 @@ static RGBQUAD MainPalette[16];
 static VOID
 BootLogoFadeIn(VOID)
 {
-    InbvDrawText("Welcome to ReactOS!");
     UCHAR PaletteBitmapBuffer[sizeof(BITMAPINFOHEADER) + sizeof(MainPalette)];
     PBITMAPINFOHEADER PaletteBitmap = (PBITMAPINFOHEADER)PaletteBitmapBuffer;
     LPRGBQUAD Palette = (LPRGBQUAD)(PaletteBitmapBuffer + sizeof(BITMAPINFOHEADER));
