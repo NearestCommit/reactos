@@ -69,7 +69,6 @@ NtDeleteObjectAuditAlarm 3
 NtDeleteValueKey 2
 NtDeviceIoControlFile 10
 NtDisplayString 1
-NtDrawText 2
 NtDuplicateObject 7
 NtDuplicateToken 6
 NtEnumerateBootEntries 2
