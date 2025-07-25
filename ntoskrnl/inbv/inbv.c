@@ -430,10 +430,7 @@ InbvNotifyDisplayOwnershipLost(
     {
         /* Acquire the lock and cleanup if we own the screen */
         InbvAcquireLock();
-        if (InbvDisplayState != INBV_DISPLAY_STATE_LOST){
-            VidCleanUp();
-            //FinalizeBootLogo();
-        } 
+        if (InbvDisplayState != INBV_DISPLAY_STATE_LOST) VidCleanUp();
 
         /* Set the reset callback and display state */
         InbvResetDisplayParameters = Callback;

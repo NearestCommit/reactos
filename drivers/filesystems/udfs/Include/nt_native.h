@@ -1576,12 +1576,6 @@ NtDisplayString(
         PUNICODE_STRING String
         );
 
-NTSTATUS
-NTAPI
-NtDrawText(
-        PUNICODE_STRING Text
-);
-
 //
 // Native applications must kill themselves when done - the job
 // of this native API
