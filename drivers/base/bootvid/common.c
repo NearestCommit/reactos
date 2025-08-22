@@ -343,7 +343,7 @@ VidDisplayStringXY(
     for (; *String; ++String, Left += BOOTCHAR_WIDTH)
     {
         /* Display a character */
-        DisplayCharacter(*String, Left, Top, BV_COLOR_LIGHT_BLUE, BackColor);
+        DisplayCharacter(*String, Left, Top, BV_COLOR_LIGHT_RED, BackColor);
     }
 }
 

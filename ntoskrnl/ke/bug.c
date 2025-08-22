@@ -8,6 +8,7 @@
 
 /* INCLUDES ******************************************************************/
 
+#include <basetsd.h>
 #include <ntdef.h>
 #include <ntoskrnl.h>
 
@@ -254,7 +255,7 @@ KeRosDumpStackFrameArray(IN PULONG_PTR Frames,
         }
 
         /* Go to the next frame */
-        DbgPrint("\n");
+        DbgPrint("\n");;
     }
 }
 
@@ -413,7 +414,7 @@ KeGetBugMessageText(IN ULONG BugCheckCode,
             {
                 /* Direct output to screen */
                 InbvDisplayString(BugCode);
-                InbvDisplayString("\r");
+                InbvDisplayString("\r");;
             }
 
             /* We're done */
@@ -566,7 +567,7 @@ KiDumpParameterImages(IN PCHAR Message,
         if (!ImageBase)
         {
             /* FIXME: Add code to check for unloaded drivers */
-            DPRINT1("Potentially unloaded driver!\n");
+            DPRINT1("Potentially unloaded driver!\n");;
             continue;
         }
         else
@@ -608,6 +609,40 @@ KiDumpParameterImages(IN PCHAR Message,
     }
 }
 
+typedef struct tagBITMAPINFOHEADER
+{
+    ULONG  biSize;
+    LONG   biWidth;
+    LONG   biHeight;
+    USHORT biPlanes;
+    USHORT biBitCount;
+    ULONG  biCompression;
+    ULONG  biSizeImage;
+    LONG   biXPelsPerMeter;
+    LONG   biYPelsPerMeter;
+    ULONG  biClrUsed;
+    ULONG  biClrImportant;
+} BITMAPINFOHEADER, *PBITMAPINFOHEADER;
+
+typedef struct tagRGBQUAD
+{
+    UCHAR rgbBlue;
+    UCHAR rgbGreen;
+    UCHAR rgbRed;
+    UCHAR rgbReserved;
+} RGBQUAD, *LPRGBQUAD;
+
+INT
+NTAPI 
+RtlMeasureText(IN PCHAR message) {
+    INT i = 1;
+    while(*message != '\0'){
+        i+=5;
+        message++;
+    }
+    return i;
+}
+
 VOID
 NTAPI
 KiDisplayBugCheckScreen(IN ULONG MessageId,
@@ -616,10 +651,22 @@ KiDisplayBugCheckScreen(IN ULONG MessageId,
                     IN PCHAR HardErrMessage OPTIONAL,
                     IN PCHAR Message)
 {
+
+    static RGBQUAD MainPalette[16];
+    UCHAR PaletteBitmapBuffer[sizeof(BITMAPINFOHEADER) + sizeof(MainPalette)];
+    PBITMAPINFOHEADER PaletteBitmap = (PBITMAPINFOHEADER)PaletteBitmapBuffer;
+    LPRGBQUAD Palette = (LPRGBQUAD)(PaletteBitmapBuffer + sizeof(BITMAPINFOHEADER));
+    RtlZeroMemory(PaletteBitmap, sizeof(BITMAPINFOHEADER));
+    PaletteBitmap->biSize = sizeof(BITMAPINFOHEADER);
+    PaletteBitmap->biBitCount = 4;
+    PaletteBitmap->biClrUsed = 16;
+
+    //RGBQUAD MainPalette[16];
     ULONG BugCheckCode = (ULONG)KiBugCheckData[0];
     BOOLEAN Enable = TRUE;
     CHAR AnsiName[107];
     CHAR StatusCodeAnsi[107];
+    CHAR BugCheckMessage[57] = "Your device has ran into a problem and needs to restart";
 
 
     /* Enable headless support for bugcheck */
@@ -635,59 +682,51 @@ KiDisplayBugCheckScreen(IN ULONG MessageId,
     /* Check if bootvid is installed */
     if (InbvIsBootDriverInstalled())
     {
+        
+        /* Palette =) */
+        Palette[0] = (RGBQUAD){0, 0, 0};
+        Palette[1] = (RGBQUAD){255, 0, 0};
+        Palette[2] = (RGBQUAD){0, 255, 0};
+        Palette[3] = (RGBQUAD){153, 123, 101};
+        Palette[4] = (RGBQUAD){0, 255, 0};
+        Palette[5] = (RGBQUAD){255, 67, 253};
+        Palette[6] = (RGBQUAD){5, 255, 210};
+        Palette[7] = (RGBQUAD){98, 99, 99};
+        Palette[8] = (RGBQUAD){163, 166, 165};
+        Palette[9] = (RGBQUAD){245, 122, 137};
+        Palette[10] = (RGBQUAD){135, 245, 122};
+        Palette[11] = (RGBQUAD){250, 255, 0};
+        Palette[12] = (RGBQUAD){255, 255, 255};
+        Palette[13] = (RGBQUAD){245, 158, 252};
+        Palette[14] = (RGBQUAD){245, 158, 252};
+        Palette[15] = (RGBQUAD){255, 255, 255};
         /* Acquire ownership and reset the display */
         InbvAcquireDisplayOwnership();
         InbvResetDisplay();
 
         /* Display blue screen */
-        InbvSolidColorFill(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BV_COLOR_WHITE);
+        InbvSolidColorFill(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BV_COLOR_BLACK);
         InbvSetTextColor(BV_COLOR_WHITE);
         InbvInstallDisplayStringFilter(NULL);
         InbvEnableDisplayString(TRUE);
         InbvSetScrollRegion(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1);
+        VidBitBlt(PaletteBitmapBuffer, 0, 0);
     }
     
-    InbvDisplayStringXY("Your device has ran into a problem and has been shut down to avoid damages", 0, 10, TRUE);
-    InbvDisplayStringXY("                    .....                ", 90, 20, TRUE);        
-    InbvDisplayStringXY("             ..:------------:..          ", 90, 30, TRUE);     
-    InbvDisplayStringXY("          ..:-------------------..       ", 90, 40, TRUE);  
-    InbvDisplayStringXY("        .:------------------------:.     ", 90, 50, TRUE);
-    InbvDisplayStringXY("       .----------------------------.    ", 90, 60, TRUE);
-    InbvDisplayStringXY("     ..--------+#*-------=*#=--------:.  ", 90, 70, TRUE);
-    InbvDisplayStringXY("     .-------=#%%%%+----*%%%%#--------.  ", 90, 80, TRUE);
-    InbvDisplayStringXY("    .---------#%%%%-----=%%%%*---------. ", 90, 90, TRUE);
-    InbvDisplayStringXY("    .-----------=----------------------: ", 90, 100, TRUE);
-    InbvDisplayStringXY("   .:----------------------------------:.", 90, 110, TRUE);
-    InbvDisplayStringXY("   .:----------------------------------:.", 90, 120, TRUE);
-    InbvDisplayStringXY("    :----------------------------------: ", 90, 130, TRUE);
-    InbvDisplayStringXY("    .----------------==----------------. ", 90, 140, TRUE);
-    InbvDisplayStringXY("     .---------=#%#*=--=*#%#=---------.  ", 90, 150, TRUE);
-    InbvDisplayStringXY("     .:------*%+------------+%*------:.  ", 90, 160, TRUE);
-    InbvDisplayStringXY("       .----------------------------.    ", 90, 170, TRUE);
-    InbvDisplayStringXY("        .:------------------------:.     ", 90, 180, TRUE);
-    InbvDisplayStringXY("          .:--------------------:.       ", 90, 190, TRUE); 
-    InbvDisplayStringXY("             ..:------------::.          ", 90, 200, TRUE); 
-    InbvDisplayStringXY("                   ......                ", 90, 210, TRUE);
-    if(IsHardError){
-        InbvDisplayStringXY(HardErrMessage, 0, 240, TRUE);
-        InbvDisplayStringXY(HardErrCaption, 0, 250, TRUE);
-    }
-
-    RtlStringCbPrintfA(AnsiName,
-                       sizeof(AnsiName),
-                       "\r\r*** STOP: 0x%08lX (0x%p,0x%p,0x%p,0x%p)\r\n\r\n",
-                       BugCheckCode,
-                       (PVOID)KiBugCheckData[1],
-                       (PVOID)KiBugCheckData[2],
-                       (PVOID)KiBugCheckData[3],
-                       (PVOID)KiBugCheckData[4]);
     RtlStringCbPrintfA(StatusCodeAnsi,
                        sizeof(StatusCodeAnsi),
                        "Stop Code: 0x%08lX",
                        BugCheckCode);
-    InbvDisplayStringXY(StatusCodeAnsi, 0, 260, TRUE);
-    InbvDisplayStringXY("---Technical Info---", 0, 290, TRUE);
-    InbvDisplayStringXY(AnsiName, 0, 310, TRUE);
+    InbvDisplayStringXY(StatusCodeAnsi, SCREEN_WIDTH / 2 - RtlMeasureText(StatusCodeAnsi), SCREEN_HEIGHT / 2, TRUE);
+    InbvDisplayStringXY(BugCheckMessage, 
+                            SCREEN_WIDTH / 2 - RtlMeasureText(BugCheckMessage), 
+                            SCREEN_HEIGHT / 2 - 100, TRUE);
+    
+    if(IsHardError){
+        InbvDisplayString(HardErrMessage);
+        InbvDisplayString(HardErrCaption);
+    }
+    
     /* Check if this is a hard error */
     if (IsHardError)
     {
@@ -697,11 +736,11 @@ KiDisplayBugCheckScreen(IN ULONG MessageId,
     }
 
     /* Begin the display */
-    // InbvDisplayString("\r\n");
+    // InbvDisplayString("\r\n");;
 
     /* Print out initial message */
     //KeGetBugMessageText(BUGCHECK_MESSAGE_INTRO, NULL);
-    //InbvDisplayString("\r\n\r\n");
+    //InbvDisplayString("\r\n\r\n");;
 
     /* Check if we have a driver */
     if (KiBugCheckDriver)
@@ -712,10 +751,10 @@ KiDisplayBugCheckScreen(IN ULONG MessageId,
         /* Convert and print out driver name */
         KeBugCheckUnicodeToAnsi(KiBugCheckDriver, AnsiName, sizeof(AnsiName));
 
-        // InbvDisplayString(" ");
+        // InbvDisplayString(" ");;
         // InbvDisplayString(AnsiName);
-        // InbvDisplayString("\r\n\r\n");
-        InbvDisplayStringXY(AnsiName, 0, 70, TRUE);
+        // InbvDisplayString("\r\n\r\n");;
+        InbvDisplayString(AnsiName);
     }
 
     /* Check if this is the generic message */
@@ -723,16 +762,16 @@ KiDisplayBugCheckScreen(IN ULONG MessageId,
     {
         /* It is, so get the bug code string as well */
         KeGetBugMessageText(BugCheckCode, NULL);
-        // InbvDisplayString("\r\n\r\n");
+        // InbvDisplayString("\r\n\r\n");;
     }
 
     /* Print second introduction message */
     //KeGetBugMessageText(PSS_MESSAGE_INTRO, NULL);
-    InbvDisplayString("\r\n\r\n");
+    InbvDisplayString("\r\n\r\n");;
 
     /* Get the bug code string */
     // KeGetBugMessageText(MessageId, NULL);
-    InbvDisplayString("\r\n\r\n");
+    InbvDisplayString("\r\n\r\n");;
 
     /* Print message for technical information */
     //KeGetBugMessageText(BUGCHECK_TECH_INFO, NULL);
@@ -743,7 +782,7 @@ KiDisplayBugCheckScreen(IN ULONG MessageId,
     if (KiBugCheckDriver)
     {
         /* Display technical driver data */
-        InbvDisplayStringXY(Message, 0, 10, TRUE);
+        InbvDisplayString(Message);
     }
     else
     {
@@ -801,11 +840,11 @@ KiDisplayBlueScreen(IN ULONG MessageId,
     }
 
     /* Begin the display */
-    InbvDisplayString("\r\n");
+    InbvDisplayString("\r\n");;
 
     /* Print out initial message */
     KeGetBugMessageText(BUGCHECK_MESSAGE_INTRO, NULL);
-    InbvDisplayString("\r\n\r\n");
+    InbvDisplayString("\r\n\r\n");;
 
     /* Check if we have a driver */
     if (KiBugCheckDriver)
@@ -815,9 +854,9 @@ KiDisplayBlueScreen(IN ULONG MessageId,
 
         /* Convert and print out driver name */
         KeBugCheckUnicodeToAnsi(KiBugCheckDriver, AnsiName, sizeof(AnsiName));
-        InbvDisplayString(" ");
+        InbvDisplayString(" ");;
         InbvDisplayString(AnsiName);
-        InbvDisplayString("\r\n\r\n");
+        InbvDisplayString("\r\n\r\n");;
     }
 
     /* Check if this is the generic message */
@@ -825,16 +864,16 @@ KiDisplayBlueScreen(IN ULONG MessageId,
     {
         /* It is, so get the bug code string as well */
         KeGetBugMessageText(BugCheckCode, NULL);
-        InbvDisplayString("\r\n\r\n");
+        InbvDisplayString("\r\n\r\n");;
     }
 
     /* Print second introduction message */
     KeGetBugMessageText(PSS_MESSAGE_INTRO, NULL);
-    InbvDisplayString("\r\n\r\n");
+    InbvDisplayString("\r\n\r\n");;
 
     /* Get the bug code string */
     KeGetBugMessageText(MessageId, NULL);
-    InbvDisplayString("\r\n\r\n");
+    InbvDisplayString("\r\n\r\n");;
 
     /* Print message for technical information */
     KeGetBugMessageText(BUGCHECK_TECH_INFO, NULL);
@@ -1268,7 +1307,7 @@ KeBugCheckWithTf(IN ULONG BugCheckCode,
         else
         {
             /* Otherwise, print the last line */
-            InbvDisplayString("\r\n");
+            InbvDisplayString("\r\n");;
         }
 
         /* Save the context */
