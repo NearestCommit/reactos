@@ -8,6 +8,7 @@
 
 /* INCLUDES ******************************************************************/
 
+#include <ntdef.h>
 #include <ntoskrnl.h>
 
 #ifdef KDBG
@@ -609,6 +610,153 @@ KiDumpParameterImages(IN PCHAR Message,
 
 VOID
 NTAPI
+KiDisplayBugCheckScreen(IN ULONG MessageId,
+                    IN BOOLEAN IsHardError,
+                    IN PCHAR HardErrCaption OPTIONAL,
+                    IN PCHAR HardErrMessage OPTIONAL,
+                    IN PCHAR Message)
+{
+    ULONG BugCheckCode = (ULONG)KiBugCheckData[0];
+    BOOLEAN Enable = TRUE;
+    CHAR AnsiName[107];
+    CHAR StatusCodeAnsi[107];
+
+
+    /* Enable headless support for bugcheck */
+    HeadlessDispatch(HeadlessCmdStartBugCheck,
+                     NULL, 0, NULL, NULL);
+    HeadlessDispatch(HeadlessCmdEnableTerminal,
+                     &Enable, sizeof(Enable),
+                     NULL, NULL);
+    HeadlessDispatch(HeadlessCmdSendBlueScreenData,
+                     &BugCheckCode, sizeof(BugCheckCode),
+                     NULL, NULL);
+
+    /* Check if bootvid is installed */
+    if (InbvIsBootDriverInstalled())
+    {
+        /* Acquire ownership and reset the display */
+        InbvAcquireDisplayOwnership();
+        InbvResetDisplay();
+
+        /* Display blue screen */
+        InbvSolidColorFill(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, BV_COLOR_WHITE);
+        InbvSetTextColor(BV_COLOR_WHITE);
+        InbvInstallDisplayStringFilter(NULL);
+        InbvEnableDisplayString(TRUE);
+        InbvSetScrollRegion(0, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1);
+    }
+    
+    InbvDisplayStringXY("Your device has ran into a problem and has been shut down to avoid damages", 0, 10, TRUE);
+    InbvDisplayStringXY("                    .....                ", 90, 20, TRUE);        
+    InbvDisplayStringXY("             ..:------------:..          ", 90, 30, TRUE);     
+    InbvDisplayStringXY("          ..:-------------------..       ", 90, 40, TRUE);  
+    InbvDisplayStringXY("        .:------------------------:.     ", 90, 50, TRUE);
+    InbvDisplayStringXY("       .----------------------------.    ", 90, 60, TRUE);
+    InbvDisplayStringXY("     ..--------+#*-------=*#=--------:.  ", 90, 70, TRUE);
+    InbvDisplayStringXY("     .-------=#%%%%+----*%%%%#--------.  ", 90, 80, TRUE);
+    InbvDisplayStringXY("    .---------#%%%%-----=%%%%*---------. ", 90, 90, TRUE);
+    InbvDisplayStringXY("    .-----------=----------------------: ", 90, 100, TRUE);
+    InbvDisplayStringXY("   .:----------------------------------:.", 90, 110, TRUE);
+    InbvDisplayStringXY("   .:----------------------------------:.", 90, 120, TRUE);
+    InbvDisplayStringXY("    :----------------------------------: ", 90, 130, TRUE);
+    InbvDisplayStringXY("    .----------------==----------------. ", 90, 140, TRUE);
+    InbvDisplayStringXY("     .---------=#%#*=--=*#%#=---------.  ", 90, 150, TRUE);
+    InbvDisplayStringXY("     .:------*%+------------+%*------:.  ", 90, 160, TRUE);
+    InbvDisplayStringXY("       .----------------------------.    ", 90, 170, TRUE);
+    InbvDisplayStringXY("        .:------------------------:.     ", 90, 180, TRUE);
+    InbvDisplayStringXY("          .:--------------------:.       ", 90, 190, TRUE); 
+    InbvDisplayStringXY("             ..:------------::.          ", 90, 200, TRUE); 
+    InbvDisplayStringXY("                   ......                ", 90, 210, TRUE);
+    if(IsHardError){
+        InbvDisplayStringXY(HardErrMessage, 0, 240, TRUE);
+        InbvDisplayStringXY(HardErrCaption, 0, 250, TRUE);
+    }
+
+    RtlStringCbPrintfA(AnsiName,
+                       sizeof(AnsiName),
+                       "\r\r*** STOP: 0x%08lX (0x%p,0x%p,0x%p,0x%p)\r\n\r\n",
+                       BugCheckCode,
+                       (PVOID)KiBugCheckData[1],
+                       (PVOID)KiBugCheckData[2],
+                       (PVOID)KiBugCheckData[3],
+                       (PVOID)KiBugCheckData[4]);
+    RtlStringCbPrintfA(StatusCodeAnsi,
+                       sizeof(StatusCodeAnsi),
+                       "Stop Code: 0x%08lX",
+                       BugCheckCode);
+    InbvDisplayStringXY(StatusCodeAnsi, 0, 260, TRUE);
+    InbvDisplayStringXY("---Technical Info---", 0, 290, TRUE);
+    InbvDisplayStringXY(AnsiName, 0, 310, TRUE);
+    /* Check if this is a hard error */
+    if (IsHardError)
+    {
+        /* Display caption and message */
+        // if (HardErrCaption) InbvDisplayString(HardErrCaption);
+        // if (HardErrMessage) InbvDisplayString(HardErrMessage);
+    }
+
+    /* Begin the display */
+    // InbvDisplayString("\r\n");
+
+    /* Print out initial message */
+    //KeGetBugMessageText(BUGCHECK_MESSAGE_INTRO, NULL);
+    //InbvDisplayString("\r\n\r\n");
+
+    /* Check if we have a driver */
+    if (KiBugCheckDriver)
+    {
+        /* Print out into to driver name */
+        KeGetBugMessageText(BUGCODE_ID_DRIVER, NULL);
+
+        /* Convert and print out driver name */
+        KeBugCheckUnicodeToAnsi(KiBugCheckDriver, AnsiName, sizeof(AnsiName));
+
+        // InbvDisplayString(" ");
+        // InbvDisplayString(AnsiName);
+        // InbvDisplayString("\r\n\r\n");
+        InbvDisplayStringXY(AnsiName, 0, 70, TRUE);
+    }
+
+    /* Check if this is the generic message */
+    if (MessageId == BUGCODE_PSS_MESSAGE)
+    {
+        /* It is, so get the bug code string as well */
+        KeGetBugMessageText(BugCheckCode, NULL);
+        // InbvDisplayString("\r\n\r\n");
+    }
+
+    /* Print second introduction message */
+    //KeGetBugMessageText(PSS_MESSAGE_INTRO, NULL);
+    InbvDisplayString("\r\n\r\n");
+
+    /* Get the bug code string */
+    // KeGetBugMessageText(MessageId, NULL);
+    InbvDisplayString("\r\n\r\n");
+
+    /* Print message for technical information */
+    //KeGetBugMessageText(BUGCHECK_TECH_INFO, NULL);
+
+    /* Show the technical Data */
+    
+    /* Check if we have a driver*/
+    if (KiBugCheckDriver)
+    {
+        /* Display technical driver data */
+        InbvDisplayStringXY(Message, 0, 10, TRUE);
+    }
+    else
+    {
+        /* Dump parameter information */
+        KiDumpParameterImages(Message,
+                              (PVOID)&KiBugCheckData[1],
+                              4,
+                              KeBugCheckUnicodeToAnsi);
+    }
+}
+
+VOID
+NTAPI
 KiDisplayBlueScreen(IN ULONG MessageId,
                     IN BOOLEAN IsHardError,
                     IN PCHAR HardErrCaption OPTIONAL,
@@ -1096,7 +1244,12 @@ KeBugCheckWithTf(IN ULONG BugCheckCode,
 #endif
 
         /* Display the BSOD */
-        KiDisplayBlueScreen(MessageId,
+        // KiDisplayBlueScreen(MessageId,
+        //                     IsHardError,
+        //                     HardErrCaption,
+        //                     HardErrMessage,
+        //                     AnsiName);
+        KiDisplayBugCheckScreen(MessageId,
                             IsHardError,
                             HardErrCaption,
                             HardErrMessage,

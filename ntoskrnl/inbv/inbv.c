@@ -368,6 +368,46 @@ InbvDisplayString(
     return FALSE;
 }
 
+BOOLEAN
+NTAPI
+InbvDisplayStringXY(
+    _In_z_ PCHAR String,
+    _In_ ULONG Left,
+    _In_ ULONG Top,
+    _In_ BOOLEAN Transparent)
+{
+    /* Make sure we own the display */
+    if (InbvDisplayState == INBV_DISPLAY_STATE_OWNED)
+    {
+        /* If we're not allowed, return success anyway */
+        if (!InbvDisplayDebugStrings) return TRUE;
+
+        /* Check if a filter is installed */
+        if (InbvDisplayFilter) InbvDisplayFilter(&String);
+
+        /* Acquire the lock */
+        InbvAcquireLock();
+
+        /* Make sure we're installed and display the string */
+        if (InbvBootDriverInstalled) VidDisplayStringXY((PUCHAR)String, Left, Top, Transparent);
+
+        /* Print the string on the EMS port */
+        HeadlessDispatch(HeadlessCmdPutString,
+                         String,
+                         strlen(String) + sizeof(ANSI_NULL),
+                         NULL,
+                         NULL);
+
+        /* Release the lock */
+        InbvReleaseLock();
+
+        /* All done */
+        return TRUE;
+    }
+
+    /* We don't own it, fail */
+    return FALSE;
+}
 
 BOOLEAN 
 NTAPI

@@ -133,6 +133,7 @@ static RGBQUAD MainPalette[16];
 static VOID
 BootLogoFadeIn(VOID)
 {
+    KeBugCheck(0xc0000012);
     UCHAR PaletteBitmapBuffer[sizeof(BITMAPINFOHEADER) + sizeof(MainPalette)];
     PBITMAPINFOHEADER PaletteBitmap = (PBITMAPINFOHEADER)PaletteBitmapBuffer;
     LPRGBQUAD Palette = (LPRGBQUAD)(PaletteBitmapBuffer + sizeof(BITMAPINFOHEADER));

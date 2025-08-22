@@ -80,6 +80,15 @@ InbvDisplayString(
 
 BOOLEAN
 NTAPI
+InbvDisplayStringXY(
+    _In_z_ PCHAR String,
+    _In_ ULONG Left,
+    _In_ ULONG Top,
+    _In_ BOOLEAN Transparent
+);
+
+BOOLEAN
+NTAPI
 InbvEnableDisplayString(
     _In_ BOOLEAN Enable
 );
